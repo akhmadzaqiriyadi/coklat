@@ -25,9 +25,8 @@ class QuizPage extends StatefulWidget {
 }
 
 class _QuizPageState extends State<QuizPage> {
-  List<dynamic> questions = [];
+  List<Map<String, dynamic>> questions = [];
   int currentQuestionIndex = 0;
-  final TextEditingController _answerController = TextEditingController();
 
   @override
   void initState() {
@@ -40,9 +39,10 @@ class _QuizPageState extends State<QuizPage> {
     try {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
-        final data = json.decode(response.body);
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final List<dynamic> rawQuestions = data['data'];
         setState(() {
-          questions = data['data'];
+          questions = rawQuestions.map((e) => e as Map<String, dynamic>).toList();
         });
       } else {
         throw Exception('Failed to load questions');
@@ -52,45 +52,33 @@ class _QuizPageState extends State<QuizPage> {
     }
   }
 
-  void checkAnswer() {
-    if (questions.isNotEmpty && _answerController.text != null) {
-      String correctAnswer = questions[currentQuestionIndex]['Jawaban'];
-      String userAnswer = _answerController.text.trim();
-
-      bool isCorrect = userAnswer.toLowerCase() == correctAnswer.toLowerCase();
+  void showAnswer() {
+    if (questions.isNotEmpty) {
+      String correctAnswer = questions[currentQuestionIndex]['Jawaban'].toString();
 
       showDialog(
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            title: Text(isCorrect ? 'Jawaban Benar!' : 'Jawaban Salah!'),
+            title: Text('Jawaban'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Pertanyaan: ${questions[currentQuestionIndex]['Pertanyaan']}',
+                  'Pertanyaan: ${questions[currentQuestionIndex]['Pertanyaan'].toString()}',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SizedBox(height: 8),
-                Text('Jawaban Adek: $userAnswer'),
-                Text('Jawaban Benar: $correctAnswer'),
-                Text(
-                  isCorrect ? 'Jawaban Benar!' : 'Jawaban Salah!',
-                  style: TextStyle(
-                    color: isCorrect ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text('Jawaban: $correctAnswer'),
               ],
             ),
             actions: [
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop();
-                  _goToNextQuestion();
                 },
-                child: Text('Lanjut'),
+                child: Text('Tutup'),
               ),
             ],
           );
@@ -112,7 +100,6 @@ class _QuizPageState extends State<QuizPage> {
         // Reset index pertanyaan
         currentQuestionIndex = 0;
       }
-      _answerController.clear();
     });
   }
 
@@ -139,36 +126,31 @@ class _QuizPageState extends State<QuizPage> {
                       children: <Widget>[
                         SizedBox(height: 80),
                         Text(
-                          questions[currentQuestionIndex]['Pertanyaan'],
-                          style: TextStyle(fontSize: 20, color: Colors.black,
-                          fontWeight: FontWeight.bold), // Warna teks
+                          questions[currentQuestionIndex]['Pertanyaan'].toString(),
+                          style: TextStyle(
+                            fontSize: 20,
+                            color: Colors.black,
+                            fontWeight: FontWeight.bold,
+                          ), // Warna teks
                           textAlign: TextAlign.center,
-                        ),
-                        SizedBox(height: 20),
-                        TextField(
-                          controller: _answerController,
-                          style: TextStyle(fontSize: 20), 
-                          decoration: InputDecoration(
-                            labelText: 'Masukkan Jawaban',
-                            labelStyle: TextStyle(color: Colors.black, fontWeight: FontWeight.w400),
-                          ),
                         ),
                         SizedBox(height: 20),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             ElevatedButton(
-                              onPressed: checkAnswer,
+                              onPressed: showAnswer,
                               style: ElevatedButton.styleFrom(
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(30),
                                 ),
-                                backgroundColor: Color.fromARGB(255, 253, 207, 56)
+                                backgroundColor: Color.fromARGB(255, 253, 207, 56),
                               ),
                               child: Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                child: Text('Cek Jawaban',
-                                style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                child: Text(
+                                  'Lihat Jawaban',
+                                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
                                 ),
                               ),
                             ),
@@ -183,7 +165,10 @@ class _QuizPageState extends State<QuizPage> {
                               ),
                               child: Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                                child: Text('Lanjut', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),),
+                                child: Text(
+                                  'Lanjut',
+                                  style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
+                                ),
                               ),
                             ),
                           ],
